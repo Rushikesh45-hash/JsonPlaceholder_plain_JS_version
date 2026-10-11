@@ -1,0 +1,515 @@
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f7fb;
+    color: #1f2937;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+.header {
+    padding: 22px 28px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.header h1 {
+    margin: 0 0 6px;
+    font-size: 25px;
+}
+
+.header p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 18px;
+    padding: 20px;
+    align-items: start;
+}
+
+.users-panel,
+.content-panel {
+    min-width: 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+}
+
+.users-panel {
+    padding: 14px;
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+}
+
+.users-panel h2 {
+    margin: 4px 0 14px;
+    font-size: 18px;
+}
+
+.useritem {
+    display: block;
+    width: 100%;
+    padding: 11px 9px;
+    margin-bottom: 6px;
+    text-align: left;
+    background: white;
+    border: 1px solid transparent;
+    border-radius: 7px;
+}
+
+.useritem:hover {
+    background: #f3f4f6;
+}
+
+.useritem.active {
+    background: #eff6ff;
+    border-color: #93c5fd;
+}
+
+.useritem span,
+.useritem small {
+    display: block;
+}
+
+.useritem span {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.useritem small {
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.content-panel {
+    padding: 22px;
+}
+
+.profile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.profile h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+}
+
+.profile p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+#selecteduserid {
+    flex-shrink: 0;
+    padding: 7px 10px;
+    background: #f3f4f6;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin: 20px 0;
+    padding: 5px;
+    background: #f3f4f6;
+    border-radius: 9px;
+}
+
+.tab {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    padding: 12px;
+    color: #4b5563;
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    font-weight: 600;
+}
+
+.tab:hover {
+    background: #e5e7eb;
+}
+
+.tab.active-tab {
+    color: white;
+    background: #2563eb;
+}
+
+.count {
+    min-width: 22px;
+    padding: 3px 6px;
+    border-radius: 12px;
+    background: rgba(128, 128, 128, 0.15);
+    font-size: 12px;
+}
+
+.active-tab .count {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.section-title {
+    margin: 0 0 16px;
+    font-size: 20px;
+}
+
+.section-title span {
+    color: #6b7280;
+    font-size: 15px;
+    font-weight: normal;
+}
+
+.post-card {
+    margin-bottom: 18px;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.post-card h3 {
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    text-transform: capitalize;
+}
+
+.post-body {
+    margin: 0;
+    color: #4b5563;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.comments-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.comments-section h4 {
+    margin: 0 0 12px;
+    font-size: 14px;
+}
+
+.comment {
+    margin-top: 10px;
+    padding: 12px;
+    background: #f8fafc;
+    border-left: 3px solid #cbd5e1;
+    border-radius: 7px;
+}
+
+.comment strong,
+.comment small {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.comment strong {
+    font-size: 13px;
+    line-height: 1.5;
+    text-transform: capitalize;
+}
+
+.comment small {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.comment p {
+    margin: 8px 0 0;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.album-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.album-button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 16px;
+    text-align: left;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+}
+
+.album-button:hover {
+    background: #f8fafc;
+    border-color: #93c5fd;
+}
+
+.album-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    color: #1d4ed8;
+    background: #dbeafe;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+.album-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.album-info strong,
+.album-info small {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.album-info strong {
+    font-size: 13px;
+    line-height: 1.5;
+    text-transform: capitalize;
+}
+
+.album-info small {
+    margin-top: 6px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.album-arrow {
+    flex-shrink: 0;
+    color: #64748b;
+    font-size: 20px;
+}
+
+.back-button {
+    margin-bottom: 16px;
+    padding: 9px 12px;
+    color: #1d4ed8;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 7px;
+}
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.photo-card {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+}
+
+.photo-card img {
+    display: block;
+    width: 100px;
+    height: 100px;
+    max-width: 100%;
+    margin: 0 auto;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.photo-card p {
+    margin: 10px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.todo-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 15px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    line-height: 1.6;
+}
+
+.todo-card:hover {
+    background: #f8fafc;
+}
+
+.todo-card input {
+    width: 17px;
+    height: 17px;
+    margin: 3px 0 0;
+    flex-shrink: 0;
+    accent-color: #2563eb;
+}
+
+.todo-card span {
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+.muted {
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.hidden {
+    display: none;
+}
+
+#message:empty {
+    display: none;
+}
+
+#message {
+    padding: 12px;
+    color: #b91c1c;
+    background: #fef2f2;
+    border-radius: 8px;
+}
+
+
+#message.loading-message {
+    color: #1d4ed8;
+    background: #eff6ff;
+}
+
+
+.empty-state {
+    padding: 14px;
+    color: #166534;
+    background: #f0fdf4;
+    border-radius: 8px;
+}
+
+@media (max-width: 1100px) {
+    .layout {
+        grid-template-columns: 185px minmax(0, 1fr);
+        padding: 14px;
+        gap: 12px;
+    }
+
+    .content-panel {
+        padding: 16px;
+    }
+
+    .photo-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 750px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .users-panel {
+        position: static;
+        max-height: none;
+    }
+
+    .useritem {
+        display: inline-block;
+        width: auto;
+        max-width: 100%;
+        margin-right: 5px;
+        vertical-align: top;
+    }
+
+    .useritem small {
+        display: none;
+    }
+
+    .album-list {
+        grid-template-columns: 1fr;
+    }
+
+    .photo-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 450px) {
+    .header {
+        padding: 18px 14px;
+    }
+
+    .header h1 {
+        font-size: 21px;
+    }
+
+    .layout {
+        padding: 10px;
+    }
+
+    .content-panel {
+        padding: 12px;
+    }
+
+    .profile {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .tabs {
+        gap: 3px;
+    }
+
+    .tab {
+        gap: 4px;
+        padding: 10px 5px;
+        font-size: 13px;
+    }
+
+    .post-card {
+        padding: 13px;
+    }
+
+    .photo-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+}
