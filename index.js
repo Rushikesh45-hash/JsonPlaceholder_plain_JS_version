@@ -8,21 +8,16 @@ const albumslistdiv = document.getElementById("albumslist");
 const todoslistdiv = document.getElementById("todoslist");
 const message = document.getElementById("message");
 
-let users = [];
 let posts = [];
 let comments = [];
 let albums = [];
 let todos = [];
-
 let currentuserid = null;
-let userrequest = 0;
-let albumrequest = 0;
+let currentrequest = 0;
 
 // Load users when the page opens.
 document.addEventListener("DOMContentLoaded", getusers);
 
-
-// Get all users from the API.
 async function getusers() {
     try {
         const response = await fetch(
@@ -33,38 +28,28 @@ async function getusers() {
             throw new Error("Could not load users.");
         }
 
-        users = await response.json();
+        const data = await response.json();
 
-        userlistdiv.innerHTML = "";
-
-        // Create a button for each user.
-        for (let i = 0; i < users.length; i++) {
-            const user = users[i];
-
-            userlistdiv.innerHTML += `
+        userlistdiv.innerHTML = data.map((user) => {
+            return `
                 <button class="useritem" data-userid="${user.id}">
                     <span>${user.name}</span>
                     <small>${user.email}</small>
                 </button>
             `;
-        }
+        }).join("");
 
-        // Automatically select the first user.
-        if (users.length > 0) {
-            handleuserclick(users[0]);
+        if (data.length > 0) {
+            handleuserclick(data[0]);
         }
     } catch (error) {
         showmessage(error.message);
     }
 }
 
-
-// Select a user and load their data.
+// Select a user and load their posts, comments, albums and todos.
 async function handleuserclick(user) {
-    const requestid = ++userrequest;
-
-    // Cancel any unfinished album request.
-    albumrequest++;
+    const requestid = ++currentrequest;
 
     currentuserid = user.id;
 
@@ -72,96 +57,81 @@ async function handleuserclick(user) {
     selectedemail.textContent = user.email;
     selecteduserid.textContent = "User ID: " + user.id;
 
-    // Highlight the selected user.
-    const userbuttons = document.querySelectorAll(".useritem");
-
-    for (let i = 0; i < userbuttons.length; i++) {
-        const button = userbuttons[i];
-
-        if (Number(button.dataset.userid) === user.id) {
-            button.classList.add("active");
-        } else {
-            button.classList.remove("active");
-        }
-    }
+    document.querySelectorAll(".useritem").forEach((button) => {
+        button.classList.toggle(
+            "active",
+            Number(button.dataset.userid) === user.id
+        );
+    });
 
     activatetab("posts");
     clearcontent();
     showmessage("Loading user data...", true);
 
     try {
-        // Load the user's posts.
-        const postsresponse = await fetch(
-            `https://jsonplaceholder.typicode.com/posts?userId=${user.id}`
+        const [postsresponse, albumsresponse, todosresponse] =
+            await Promise.all([
+                fetch(
+                    `https://jsonplaceholder.typicode.com/posts?userId=${user.id}`
+                ),
+                fetch(
+                    `https://jsonplaceholder.typicode.com/albums?userId=${user.id}`
+                ),
+                fetch(
+                    `https://jsonplaceholder.typicode.com/todos?userId=${user.id}`
+                )
+            ]);
+
+        if (
+            !postsresponse.ok ||
+            !albumsresponse.ok ||
+            !todosresponse.ok
+        ) {
+            throw new Error("Could not load user data.");
+        }
+
+        const [postsdata, albumsdata, todosdata] = await Promise.all([
+            postsresponse.json(),
+            albumsresponse.json(),
+            todosresponse.json()
+        ]);
+
+        const commentresponses = await Promise.all(
+            postsdata.map((post) => {
+                return fetch(
+                    `https://jsonplaceholder.typicode.com/comments?postId=${post.id}`
+                );
+            })
         );
 
-        if (!postsresponse.ok) {
-            throw new Error("Could not load posts.");
+        if (commentresponses.some((response) => !response.ok)) {
+            throw new Error("Could not load comments.");
         }
 
-        const postsdata = await postsresponse.json();
-
-        // Load the user's albums.
-        const albumsresponse = await fetch(
-            `https://jsonplaceholder.typicode.com/albums?userId=${user.id}`
+        const commentsdata = await Promise.all(
+            commentresponses.map((response) => {
+                return response.json();
+            })
         );
 
-        if (!albumsresponse.ok) {
-            throw new Error("Could not load albums.");
-        }
-
-        const albumsdata = await albumsresponse.json();
-
-        // Load the user's todos.
-        const todosresponse = await fetch(
-            `https://jsonplaceholder.typicode.com/todos?userId=${user.id}`
-        );
-
-        if (!todosresponse.ok) {
-            throw new Error("Could not load todos.");
-        }
-
-        const todosdata = await todosresponse.json();
-
-        // Load comments for every post.
-        const commentsdata = [];
-
-        for (let i = 0; i < postsdata.length; i++) {
-            const post = postsdata[i];
-
-            const commentresponse = await fetch(
-                `https://jsonplaceholder.typicode.com/comments?postId=${post.id}`
-            );
-
-            if (!commentresponse.ok) {
-                throw new Error("Could not load comments.");
-            }
-
-            const postcomments = await commentresponse.json();
-
-            // Add each comment to one large comments array.
-            for (let j = 0; j < postcomments.length; j++) {
-                commentsdata.push(postcomments[j]);
-            }
-        }
-
-        // Ignore results if another user was selected.
-        if (requestid !== userrequest) {
+        // Ignore results if another user was selected meanwhile.
+        if (requestid !== currentrequest) {
             return;
         }
 
         posts = postsdata;
-        comments = commentsdata;
-        albums = albumsdata;
 
-        // Keep only pending todos.
-        todos = [];
+        // Combine all comment arrays into one array without using flat().
+        comments = [];
 
-        for (let i = 0; i < todosdata.length; i++) {
-            if (todosdata[i].completed === false) {
-                todos.push(todosdata[i]);
+        for (let i = 0; i < commentsdata.length; i++) {
+            for (let j = 0; j < commentsdata[i].length; j++) {
+                comments.push(commentsdata[i][j]);
             }
         }
+
+        albums = albumsdata;
+        todos = todosdata.filter((todo) => !todo.completed);
 
         renderposts();
         renderalbums();
@@ -169,49 +139,23 @@ async function handleuserclick(user) {
 
         showmessage("");
     } catch (error) {
-        if (requestid === userrequest) {
+        if (requestid === currentrequest) {
             showmessage(error.message);
         }
     }
 }
 
-
-// Display posts and their comments.
+// Show posts and each post's own comments.
 function renderposts() {
     document.getElementById("postcount").textContent =
-        "(" + posts.length + ")";
+        `(${posts.length})`;
 
-    postslistdiv.innerHTML = "";
+    postslistdiv.innerHTML = posts.map((post) => {
+        const postcomments = comments.filter((comment) => {
+            return comment.postId === post.id;
+        });
 
-    for (let i = 0; i < posts.length; i++) {
-        const post = posts[i];
-
-        let postcomments = [];
-
-        // Find comments belonging to this post.
-        for (let j = 0; j < comments.length; j++) {
-            if (comments[j].postId === post.id) {
-                postcomments.push(comments[j]);
-            }
-        }
-
-        let commentshtml = "";
-
-        // Create the HTML for each comment.
-        for (let j = 0; j < postcomments.length; j++) {
-            const comment = postcomments[j];
-
-            commentshtml += `
-                <div class="comment">
-                    <strong>${comment.name}</strong>
-                    <small>${comment.email}</small>
-                    <p>${comment.body}</p>
-                </div>
-            `;
-        }
-
-        // Create the post and its comments.
-        postslistdiv.innerHTML += `
+        return `
             <article class="post-card">
                 <h3>${post.title}</h3>
 
@@ -222,63 +166,54 @@ function renderposts() {
                 <div class="comments-section">
                     <h4>Comments (${postcomments.length})</h4>
 
-                    ${commentshtml}
+                    ${postcomments.map((comment) => {
+                        return `
+                            <div class="comment">
+                                <strong>${comment.name}</strong>
+                                <small>${comment.email}</small>
+                                <p>${comment.body}</p>
+                            </div>
+                        `;
+                    }).join("")}
                 </div>
             </article>
         `;
-    }
+    }).join("");
 }
 
-
-// Display the user's albums.
+// Show only the selected user's album names.
 function renderalbums() {
-    albumslistdiv.innerHTML = "";
-
-    let albumhtml = `
+    albumslistdiv.innerHTML = `
         <h2 class="section-title">Albums (${albums.length})</h2>
+
         <div class="album-list">
+            ${albums.map((album) => {
+                return `
+                    <button class="album-button" data-albumid="${album.id}">
+                        <span class="album-icon">${album.id}</span>
+
+                        <span class="album-info">
+                            <strong>${album.title}</strong>
+                            <small>Click to view photos</small>
+                        </span>
+
+                        <span class="album-arrow">&rarr;</span>
+                    </button>
+                `;
+            }).join("")}
+        </div>
     `;
-
-    for (let i = 0; i < albums.length; i++) {
-        const album = albums[i];
-
-        albumhtml += `
-            <button class="album-button" data-albumid="${album.id}">
-                <span class="album-icon">${album.id}</span>
-
-                <span class="album-info">
-                    <strong>${album.title}</strong>
-                    <small>Click to view photos</small>
-                </span>
-
-                <span class="album-arrow">&rarr;</span>
-            </button>
-        `;
-    }
-
-    albumhtml += "</div>";
-
-    albumslistdiv.innerHTML = albumhtml;
 }
 
-
-// Open an album and load its photos.
+// Open an album and fetch only its photos.
 async function handlealbumclick(albumid) {
-    let selectedalbum = null;
+    const album = albums.find((item) => item.id === albumid);
 
-    // Find the selected album.
-    for (let i = 0; i < albums.length; i++) {
-        if (albums[i].id === albumid) {
-            selectedalbum = albums[i];
-            break;
-        }
-    }
-
-    if (selectedalbum === null) {
+    if (!album) {
         return;
     }
 
-    const requestid = ++albumrequest;
+    const requestid = ++currentrequest;
 
     showmessage("Loading photos...", true);
 
@@ -293,29 +228,8 @@ async function handlealbumclick(albumid) {
 
         const photos = await response.json();
 
-        // Ignore the result if another album or user was selected.
-        if (requestid !== albumrequest) {
+        if (requestid !== currentrequest) {
             return;
-        }
-
-        let photoshtml = "";
-
-        for (let i = 0; i < photos.length; i++) {
-            const photo = photos[i];
-
-            photoshtml += `
-                <article class="photo-card">
-                    <img
-                        src="${photo.thumbnailUrl}"
-                        alt="${photo.title}"
-                        width="100"
-                        height="100"
-                        loading="lazy"
-                    >
-
-                    <p>${photo.title}</p>
-                </article>
-            `;
         }
 
         albumslistdiv.innerHTML = `
@@ -323,101 +237,84 @@ async function handlealbumclick(albumid) {
                 &larr; Back to albums
             </button>
 
-            <h2 class="section-title">${selectedalbum.title}</h2>
+            <h2 class="section-title">${album.title}</h2>
 
             <p class="muted">Photos in this album: ${photos.length}</p>
 
             <div class="photo-grid">
-                ${photoshtml}
+                ${photos.map((photo) => {
+                    return `
+                        <article class="photo-card">
+                            <img
+                                src="${photo.thumbnailUrl}"
+                                alt="${photo.title}"
+                                width="100"
+                                height="100"
+                                loading="lazy"
+                            >
+                            <p>${photo.title}</p>
+                        </article>
+                    `;
+                }).join("")}
             </div>
         `;
 
         showmessage("");
     } catch (error) {
-        if (requestid === albumrequest) {
+        if (requestid === currentrequest) {
             showmessage(error.message);
         }
     }
 }
 
-
-// Display pending todos.
+// Show only the remaining tasks.
 function rendertodos() {
     document.getElementById("todocount").textContent = todos.length;
-
     document.getElementById("pendingcount").textContent =
-        "(" + todos.length + ")";
-
-    todoslistdiv.innerHTML = "";
+        `(${todos.length})`;
 
     if (todos.length === 0) {
         todoslistdiv.innerHTML = `
             <p class="empty-state">All tasks are completed.</p>
         `;
-
         return;
     }
 
-    for (let i = 0; i < todos.length; i++) {
-        const todo = todos[i];
-
-        todoslistdiv.innerHTML += `
+    todoslistdiv.innerHTML = todos.map((todo) => {
+        return `
             <label class="todo-card">
                 <input
                     type="checkbox"
                     data-todoid="${todo.id}"
                 >
-
                 <span>${todo.title}</span>
             </label>
         `;
-    }
+    }).join("");
 }
 
-
-// Remove a completed task from the pending list.
+// Remove a task from the pending list when checked.
 function handletodoclick(todoid) {
-    const remainingtodos = [];
-
-    for (let i = 0; i < todos.length; i++) {
-        if (todos[i].id !== todoid) {
-            remainingtodos.push(todos[i]);
-        }
-    }
-
-    todos = remainingtodos;
-
+    todos = todos.filter((todo) => todo.id !== todoid);
     rendertodos();
 }
 
-
-// Switch between the three tabs.
+// Switch between Posts, Albums and Todos.
 function activatetab(tabname) {
-    const tabbuttons = document.querySelectorAll(".tab");
+    document.querySelectorAll(".tab").forEach((button) => {
+        button.classList.toggle(
+            "active-tab",
+            button.dataset.tab === tabname
+        );
+    });
 
-    for (let i = 0; i < tabbuttons.length; i++) {
-        const button = tabbuttons[i];
-
-        if (button.dataset.tab === tabname) {
-            button.classList.add("active-tab");
-        } else {
-            button.classList.remove("active-tab");
-        }
-    }
-
-    const sections = document.querySelectorAll(".tab-content");
-
-    for (let i = 0; i < sections.length; i++) {
-        const section = sections[i];
-
-        if (section.id === tabname + "view") {
-            section.classList.remove("hidden");
-        } else {
-            section.classList.add("hidden");
-        }
-    }
+    document.querySelectorAll(".tab-content").forEach((section) => {
+        section.classList.toggle(
+            "hidden",
+            section.id !== `${tabname}view`
+        );
+    });
 }
-
 
 // Clear old content when selecting another user.
 function clearcontent() {
@@ -435,47 +332,45 @@ function clearcontent() {
     document.getElementById("pendingcount").textContent = "(0)";
 }
 
-
 // Display loading messages and errors.
 function showmessage(text, loading = false) {
     message.textContent = text;
-
     message.classList.toggle("loading-message", loading);
 }
 
-
-// Handle clicks on users, tabs, albums, and the back button.
-document.addEventListener("click", function (event) {
-    // Check whether a user button was clicked.
+// Handle clicks using event delegation.
+document.addEventListener("click", (event) => {
     const userbutton = event.target.closest(".useritem");
 
     if (userbutton) {
         const userid = Number(userbutton.dataset.userid);
 
-        // Find the selected user in the users array.
-        for (let i = 0; i < users.length; i++) {
-            if (users[i].id === userid) {
-                handleuserclick(users[i]);
-                break;
-            }
-        }
+        // Find the user's data from the list.
+        fetch(`https://jsonplaceholder.typicode.com/users/${userid}`)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error("Could not load selected user.");
+                }
+
+                return response.json();
+            })
+            .then((user) => handleuserclick(user))
+            .catch((error) => showmessage(error.message));
 
         return;
     }
 
-    // Check whether a tab was clicked.
     const tabbutton = event.target.closest(".tab");
 
     if (tabbutton) {
-        albumrequest++;
+        // Invalidate any unfinished album request.
+        currentrequest++;
 
         activatetab(tabbutton.dataset.tab);
         showmessage("");
-
         return;
     }
 
-    // Check whether an album was clicked.
     const albumbutton = event.target.closest(".album-button");
 
     if (albumbutton) {
@@ -483,23 +378,18 @@ document.addEventListener("click", function (event) {
         return;
     }
 
-    // Check whether the back button was clicked.
-    const backbutton = event.target.closest("#backtoalbums");
-
-    if (backbutton) {
-        albumrequest++;
+    if (event.target.closest("#backtoalbums")) {
+        // Invalidate any unfinished album request.
+        currentrequest++;
 
         renderalbums();
         showmessage("");
     }
 });
 
-
-// Handle todo checkbox changes.
-document.addEventListener("change", function (event) {
+// Handle todo checklist changes.
+document.addEventListener("change", (event) => {
     if (event.target.matches(".todo-card input[type='checkbox']")) {
-        const todoid = Number(event.target.dataset.todoid);
-
-        handletodoclick(todoid);
+        handletodoclick(Number(event.target.dataset.todoid));
     }
 });
